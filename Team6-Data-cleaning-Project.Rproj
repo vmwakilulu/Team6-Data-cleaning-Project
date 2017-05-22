@@ -1,0 +1,164 @@
+---
+title: "Data cleanup tasks"
+author: "Victor Mwakilulu & Brian Gitonga"
+date: "May 21, 2017"
+output: html_document
+---
+
+
+## Project objectives 
+
+The project objectives for data cleaning are the following.
+
+1. Populate the missing values in the "Area" feature with an appropriate values
+
+2. Remove special characters and padding from "Street 1"" and "Street 2" features
+
+3. Make the streets denominations following the same standard
+
+4. Make sure the first letters of street names are capitalized
+
+5. Removing value in "Street 2" if it duplicates the value in "Street 1"
+
+6. Remove the "Strange HTML column"
+
+## Project Deliverables
+
+1. A written **report** with R code for data cleaning tasks.
+
+2. "Cleaned" data set.
+
+## Data set description
+
+The data set is a csv file **dirty_data.csv**. It has **5279** observations with **5** features. Here is an original data with converted to lower case features names.
+
+```{r warning=FALSE, message=FALSE}
+# Load libraries
+library(dplyr)
+library(stringr)
+library(tidyverse)
+
+# Read data set
+df <- read.csv("dirty_data.csv", stringsAsFactors = FALSE)
+
+# Convert features names to lower case
+colnames(df) <- c("year", "area", "street_1", "street_2", "strange_html")
+
+# Print first rows of data set
+head(df)
+```
+
+# Data clean tasks
+
+## 1. Populate the missing values in the "Area" feature with an appropriate values
+
+The feature **"area"** has **`r length(unique(df$area))`** unique values **`r paste0(unique(df$area), collapse=", ")`**.
+
+The analysis of missing values for the feature "area" shown that data come from a data source had primarily been used for manual data entry. So, the missing values indicated that the previous values should be **carried forward**.
+
+So, the process of populating (imputing) missing values has 2 stages.
+
+The first stage is **convert empty value** of feature as string ("") into R missing value **"NA"** by using the following code
+
+```{r warning=FALSE, message=FALSE}
+# Replace empty value as "" into "NA" value
+df <- df %>% 
+  mutate(area = ifelse(area == "", NA, area))
+
+# Print first rows of data set
+head(df)
+```
+
+The second stage is to apply **fill()** function to populate missing values by using the following code.
+
+```{r warning=FALSE, message=FALSE}
+# Populate missing values as a carried forward
+df <- df %>% 
+  fill(area)
+
+# Print first rows of data set
+head(df)
+```
+
+## 2. Remove special characters and padding from "Street 1" and "Street 2" features
+
+The **special characters** can be removed replacing their values with white spaces by using R function **iconv()** that uses system facilities to convert a character vector between encodings. The **"i"** char stands for "internationalization".
+
+The **paddings** as a white spaces before and after features values can be removed by using function **str_trim()** from R package **"stringr"** that has a simple consistent wrappers for common string operations.
+
+Here is the R code for these two operations.
+
+```{r warning=FALSE, message=FALSE}
+# Pipeline for removing special characters and paddings
+df <- df %>% 
+  mutate(
+    # Remove special characters by replacing them on space (" ")
+    street_1 = iconv(street_1, "latin1", "ASCII", sub=" "),
+    street_2 = iconv(street_2, "latin1", "ASCII", sub=" "),
+    # Remove padding as a white spaces before and after features values
+    street_1 = str_trim(street_1),
+    street_2 = str_trim(street_2))
+
+# Print first rows of data set
+head(df)
+```
+
+## 3. Make the streets denominations following the same standard
+
+The function **str_replace()** from R package **stringr** was used to make the streets denominators following the same standard (for example, all streets are indicated as âstr.â, avenues as âave.â). The function taking into account ignoring letters case sensetive by using option **ignore.case()**.
+
+Here is the R code for this operation.
+
+```{r warning=FALSE, message=FALSE}
+# Pipelibe to make street denominations following the same standard
+df <- df %>% 
+  mutate(
+    # for all streets as "str."
+    street_1 = str_replace(street_1, ignore.case("street") , "str."),
+    street_2 = str_replace(street_2, ignore.case("street") , "str."),
+    # for all avenues as "ave."
+    street_1 = str_replace(street_1, ignore.case("avenue") , "ave."),
+    street_2 = str_replace(street_2, ignore.case("avenue") , "ave."))
+
+# Print first rows of data set
+head(df)
+```
+
+## 4. Make sure the first letters of street names are capitalized 
+
+The data cleaning process for checking and capitalizing first letters of street names has the following stages.
+
+1. Create a function to capitalize first letter
+
+```{r warning=FALSE, message=FALSE}
+# Capitalize first letter of string
+cap_first_letter <- function(s) {
+  paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "")
+}
+```
+
+2. Create temporary data frames with start and end positions of substring **"str."** in the streets names by using function **str_locate()** from R package **"stringr"**.
+
+```{r warning=FALSE, message=FALSE}
+# Temporary data sets
+pos_str_in_df_street_1 <- str_locate(df$street_1, "str.")
+pos_str_in_df_street_2 <- str_locate(df$street_2, "str.")
+
+# Show data set structure
+head(pos_str_in_df_street_1)
+```
+
+3. Adding values of street names to the temporary data frames.
+
+```{r warning=FALSE, message=FALSE}
+# Add value of 'street_1' feature
+pos_str_in_df_street_1 <- as.data.frame(cbind(pos_str_in_df_street_1, df$street_1))
+colnames(pos_str_in_df_street_1) <- c("start", "end", "street_1")
+
+# Add value of 'street_2' feature
+pos_str_in_df_street_2 <- as.data.frame(cbind(pos_str_in_df_street_2, df$street_2))
+colnames(pos_str_in_df_street_2) <- c("start", "end", "street_2")
+
+# Show data set
+head(pos_str_in_df_street_1)
+```
