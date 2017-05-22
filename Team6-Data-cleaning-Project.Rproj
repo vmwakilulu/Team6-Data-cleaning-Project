@@ -162,3 +162,86 @@ colnames(pos_str_in_df_street_2) <- c("start", "end", "street_2")
 # Show data set
 head(pos_str_in_df_street_1)
 ```
+4. Capitalize the first letter in the street name if it has substring "str."
+
+```{r warning=FALSE, message=FALSE}
+# Capitalize first letter for 'street_1'
+pos_str_in_df_street_1 <- pos_str_in_df_street_1 %>% 
+  mutate(street_1 = ifelse(!is.na(start), 
+                           as.character(cap_first_letter(street_1)), 
+                           as.character(street_1)))
+
+# Capitalize first letter for 'street_2'
+pos_str_in_df_street_2 <- pos_str_in_df_street_2 %>% 
+  mutate(street_2 = ifelse(!is.na(start), 
+                           as.character(cap_first_letter(street_2)), 
+                           as.character(street_2)))
+
+# Show data set
+head(pos_str_in_df_street_1)
+```
+
+5. Replace street names values by new in the original data set
+
+```{r warning=FALSE, message=FALSE}
+# Replace in original data set by new values
+df$street_1 <- pos_str_in_df_street_1$street_1
+df$street_2 <- pos_str_in_df_street_2$street_2
+
+# Show data set
+head(df)
+```
+
+## 5. Removing value in "Street 2" if it duplicates the value in "Street 1"
+
+The removing value in Street 2 if it duplicates the value in Street 1 is possible by using function **duplicated** from the R package **"base"**.
+
+The following code made this operation in a one step.
+
+```{r warning=FALSE, message=FALSE}
+# Remove value in 'street_2' if it duplicate in 'street_1'
+df <- df %>% 
+  mutate(street_2 = ifelse(duplicated(df[, c("street_1", "street_2")]), "", street_2))
+
+# Show data set
+df
+```
+
+It takes note that in the feature 'street_1' is also has duplicated values that can be process for the practical needs.
+
+## 6. Remove the "Strange HTML column"
+
+Removing **"Strange HTML column"** is a simple operation by assign this feature a **NULL** value.
+
+```{r warning=FALSE, message=FALSE}
+# Remove feature
+df$strange_html <- NULL
+
+# Show new data set structure
+str(df)
+```
+
+# Save results
+
+The result of data cleaning operations saved as **"clean_data.csv"** file by followig command.
+
+```{r warning=FALSE, message=FALSE}
+# Save results
+write.csv(df, "clean_data.csv")
+```
+
+# Conclusion
+
+The results of data cleaning tasks is a "cleaned" data set that hasn't:
+
+- missing values for "Area" feature;
+
+- special characters and paddings for "Street 1"" and "Street 2" features;
+
+- values of "Street 1"" and "Street 2" features follow the same standard on example for "str." and "ave." values;
+
+- the first letters of street names for "Street 1"" and "Street 2" features are capitalized;
+
+- if value for "Street 2" feature duplicates with value in "Street 1" feature it removes;
+
+- the "Strange HTML column" was removed.
